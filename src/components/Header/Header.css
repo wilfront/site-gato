@@ -1,0 +1,134 @@
+/* HEADER */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.4rem 40px;
+  height: 70px;
+  background: rgb(16, 18, 41);
+  color: white;
+  position: relative;
+  z-index: 10;
+}
+
+/* LOGO */
+.logo h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+/* BOTÃO HAMBURGUER */
+.menu-toggle {
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 1001;
+  display: none;
+}
+
+.hamburger {
+  color: white;
+}
+
+/* MENU DESKTOP */
+.menu-desktop {
+  display: none;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-list li {
+  margin: 1rem 0;
+}
+
+/* LINKS DO MENU COM ANIMAÇÃO DE BORDA INFERIOR */
+.menu-list a {
+  color: white;
+  text-decoration: none;
+  font-size: 1.5rem;
+  position: relative;      /* para o ::after */
+  padding-bottom: 4px;     /* espaço para a borda */
+  transition: color 0.3s ease;
+}
+
+.menu-list a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 0;
+  background-color: #bcbe20;
+  transition: width 0.3s ease;
+}
+
+.menu-list a:hover {
+  color: #bcbe20;
+}
+
+.menu-list a:hover::after {
+  width: 100%;
+}
+
+/* MENU DESKTOP */
+@media (min-width: 768px) {
+  .menu-desktop {
+    display: block;
+  }
+
+  .menu-list {
+    display: flex;
+    flex-direction: row;
+    gap: 2rem;
+  }
+
+  .menu-list li {
+    margin: 0;
+  }
+}
+
+/* MENU MOBILE */
+.menu-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  max-width: 100%;
+  width: 250px;
+  height: 100vh;
+  background: rgb(16, 18, 41);
+  padding: 2rem 1.5rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+/* BOTÃO DE FECHAR DENTRO DO MENU */
+.close-btn-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+}
+
+.close-btn {
+  font-size: 2rem;
+  color: white;
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .menu-toggle {
+    display: block;
+  }
+
+  .menu-desktop {
+    display: none;
+  }
+
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+  }
+}
