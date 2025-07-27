@@ -1,5 +1,5 @@
 .videos-page {
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('../../../public/gato4.jpg');
+  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('../../../public/gato4.jpg');
   background-size: cover;
   background-position: center;
   color: white;
@@ -16,16 +16,16 @@
   margin-bottom: 30px;
 }
 
-.videos-grid {
+.fotos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
   justify-content: center;
   width: 100%;
   max-width: 1000px;
 }
 
-.video-item video {
+.foto-item video {
   width: 100%;
   height: 180px;
   object-fit: cover;
@@ -34,6 +34,6 @@
   transition: transform 0.2s ease;
 }
 
-.video-item video:hover {
-  transform: scale(1.03);
+.foto-item video:hover {
+  transform: scale(1.05);
 }
