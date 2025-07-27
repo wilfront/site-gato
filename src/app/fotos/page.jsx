@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // desativa cache estático e ISR no Next.js
+
 import { createClient } from '@supabase/supabase-js';
 import FotosClient from './FotosClient';
 import './fotos.css';
