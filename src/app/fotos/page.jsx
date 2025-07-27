@@ -1,13 +1,25 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 import FotosClient from './FotosClient';
 import './fotos.css';
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
 async function getFotos() {
-  const filePath = path.join(process.cwd(), 'src', 'db', 'midias.json');
-  const data = await fs.readFile(filePath, 'utf-8');
-  const midias = JSON.parse(data);
-  return midias.filter((m) => m.tipo === 'foto');
+  const { data, error } = await supabase
+    .from('midias')
+    .select('*')
+    .eq('tipo', 'foto')
+    .order('id', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao buscar fotos:', error.message);
+    return [];
+  }
+
+  return data || [];
 }
 
 export default async function FotosPage() {

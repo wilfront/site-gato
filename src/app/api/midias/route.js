@@ -1,14 +1,11 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const filePath = path.join(process.cwd(), 'src', 'db', 'midias.json');
+import supabase from '@/lib/supabase';
 
 export async function GET() {
-    try {
-        const data = await fs.readFile(filePath, 'utf-8');
-        const midias = JSON.parse(data);
-        return Response.json(midias);
-    } catch (err) {
-        return Response.json({ error: 'Erro ao ler midias.json' }, { status: 500 });
-    }
+  const { data, error } = await supabase.from('midias').select('*').order('id', { ascending: false });
+
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify(data), { status: 200 });
 }

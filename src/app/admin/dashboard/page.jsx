@@ -1,166 +1,123 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import './admin.css';
+import { useEffect, useState } from 'react';
+import './admin.css'; // Importando o CSS do painel admin
 
-export default function Dashboard() {
+export default function PainelAdmin() {
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [tipo, setTipo] = useState('foto');
   const [midias, setMidias] = useState([]);
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  // Verifica login
+  // Busca as mídias no início
   useEffect(() => {
-    fetch('/api/verifica-auth').then(res => {
-      if (!res.ok) router.push('/login');
-    });
-
-    fetch('/api/midias').then(res => res.json()).then(setMidias);
+    fetch('/api/midias')
+      .then((res) => res.json())
+      .then((data) => {
+        setMidias(data || []);
+      })
+      .catch(() => setMidias([]));
   }, []);
 
-  // Função para redimensionar imagem (apenas fotos)
-  function resizeImage(file, maxWidth = 1000, maxHeight = 1000) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        img.src = e.target.result;
-      };
-
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            resolve(blob);
-          },
-          file.type,
-          0.8 // qualidade 80%
-        );
-      };
-
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Mostra preview da imagem/vídeo
-  function handleFile(e) {
-    const arquivo = e.target.files[0];
-    setFile(arquivo);
-    setPreview(URL.createObjectURL(arquivo));
-  }
-
-  // Faz upload (com redimensionamento para fotos)
-  async function upload() {
-    if (!file) return alert('Selecione um arquivo.');
-
-    let uploadFile = file;
-
-    if (tipo === 'foto') {
-      try {
-        uploadFile = await resizeImage(file);
-      } catch (error) {
-        alert('Erro ao redimensionar a imagem.');
-        return;
-      }
-    }
+  // Upload
+  async function handleUpload(e) {
+    e.preventDefault();
+    if (!file) return alert('Selecione um arquivo');
 
     const form = new FormData();
-    form.append('file', uploadFile, file.name);
+    form.append('file', file);
     form.append('tipo', tipo);
 
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: form,
-    });
+    setLoading(true);
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: form,
+      });
+      const data = await res.json();
 
-    if (!res.ok) {
-      alert('Erro no upload');
-      return;
+      if (!res.ok) throw new Error(data.error || 'Erro no upload');
+
+      setMidias((prev) => [data, ...prev]);
+      setFile(null);
+      alert('Upload realizado com sucesso!');
+    } catch (err) {
+      alert(err.message);
     }
-
-    const json = await res.json();
-    setMidias(m => [...m, json.midia]);
-    setFile(null);
-    setPreview(null);
+    setLoading(false);
   }
 
-  // Deletar imagem
-  async function deletar(url) {
-    await fetch('/api/delete', {
-      method: 'DELETE',
-      body: JSON.stringify({ url }),
-    });
+  // Deletar mídia
+  async function handleDelete(id) {
+    if (!confirm('Deseja realmente excluir esta mídia?')) return;
 
-    setMidias(m => m.filter(m => m.url !== url));
-  }
+    try {
+      const res = await fetch('/api/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
 
-  // Logout
-  async function logout() {
-    await fetch('/api/logout', { method: 'POST' });
-    router.push('/login');
+      if (!res.ok) throw new Error(data.error || 'Erro ao deletar');
+
+      setMidias((prev) => prev.filter((m) => m.id !== id));
+      alert('Mídia excluída com sucesso!');
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   return (
-    <div className='painel-admin' style={{ padding: 20 }}>
-      <h2>Painel Admin</h2>
-      <button onClick={logout}>Sair</button>
+    <div className="painel-admin" style={{ padding: 20 }}>
+      <h1>Painel Admin</h1>
 
-      <hr />
+      <form onSubmit={handleUpload}>
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files[0])}
+          accept="image/*,video/*"
+          disabled={loading}
+        />
+        <select value={tipo} onChange={(e) => setTipo(e.target.value)} disabled={loading}>
+          <option value="foto">Foto</option>
+          <option value="video">Vídeo</option>
+        </select>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Enviando...' : 'Enviar'}
+        </button>
+      </form>
 
-      <h3>Enviar nova mídia</h3>
-      <select value={tipo} onChange={e => setTipo(e.target.value)}>
-        <option value="foto">Foto</option>
-        <option value="video">Vídeo</option>
-      </select>
+      <h2>Mídias Enviadas</h2>
 
-      <input type="file" onChange={handleFile} accept={tipo === 'foto' ? 'image/*' : 'video/*'} />
-
-      {preview && (
-        <div style={{ margin: '10px 0' }}>
-          {tipo === 'foto'
-            ? <img src={preview} width={200} />
-            : <video src={preview} width={300} controls />}
+      {midias.length === 0 ? (
+        <p>Nenhuma mídia enviada</p>
+      ) : (
+        <div
+          className="midias-enviadas"
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}
+        >
+          {midias.map((m) => (
+            <div
+              key={m.id}
+              className="midia-item"
+              style={{ border: '1px solid #ccc', padding: 10 }}
+            >
+              {m.tipo === 'foto' ? (
+                <img src={m.url} alt="Foto" style={{ width: 150 }} />
+              ) : (
+                <video src={m.url} controls style={{ width: 150 }} />
+              )}
+              <button
+                onClick={() => handleDelete(m.id)}
+                style={{ marginTop: 10, width: '100%' }}
+              >
+                Excluir
+              </button>
+            </div>
+          ))}
         </div>
       )}
-
-      <button onClick={upload}>Enviar</button>
-
-      <hr />
-
-      <h3>Mídias enviadas</h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-        {midias.map((m, i) => (
-          <div key={i} style={{ border: '1px solid #ccc', padding: 10 }}>
-            {m.tipo === 'foto' ? (
-              <img src={m.url} width={200} />
-            ) : (
-              <video src={m.url} width={300} controls />
-            )}
-            <button onClick={() => deletar(m.url)} style={{ marginTop: 5 }}>Excluir</button>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

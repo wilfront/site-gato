@@ -1,65 +1,49 @@
-import { NextResponse } from 'next/server';
+import { Readable } from 'stream';
 import { cloudinary } from '@/lib/cloudinary';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const filePath = path.join(process.cwd(), 'src', 'db', 'midias.json');
-
-function streamUpload(buffer, options) {
-    return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-            options,
-            (error, result) => {
-                if (result) resolve(result);
-                else reject(error);
-            }
-        );
-
-        stream.end(buffer);
-    });
-}
+import supabase from '@/lib/supabase';
 
 export async function POST(req) {
-    try {
-        const formData = await req.formData();
-        const file = formData.get('file');
-        const tipo = formData.get('tipo'); // "foto" ou "video"
+  try {
+    const data = await req.formData();
+    const file = data.get('file');
+    const tipo = data.get('tipo');
 
-        if (!file || !tipo) {
-            return NextResponse.json({ error: 'Arquivo ou tipo faltando' }, { status: 400 });
-        }
-
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        // Faz upload direto do buffer para o Cloudinary
-        const result = await streamUpload(buffer, {
-            resource_type: 'auto',
-            folder: 'painel',
-        });
-
-        // Ler arquivo JSON existente (cria vazio se não existir)
-        let midias = [];
-        try {
-            const fileData = await fs.readFile(filePath, 'utf-8');
-            if (fileData) midias = JSON.parse(fileData);
-        } catch {
-            // arquivo não existe, ignora
-        }
-
-        // Nova entrada
-        const novaMidia = {
-            url: result.secure_url,
-            tipo,
-            data: new Date().toISOString(),
-        };
-
-        midias.push(novaMidia);
-
-        await fs.writeFile(filePath, JSON.stringify(midias, null, 2));
-
-        return NextResponse.json({ success: true, midia: novaMidia });
-    } catch (err) {
-        return NextResponse.json({ error: 'Erro no upload', details: err.message }, { status: 500 });
+    if (!file || typeof file === 'string') {
+      return new Response(JSON.stringify({ error: 'Arquivo inválido' }), { status: 400 });
     }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const streamUpload = () =>
+      new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'auto',
+            folder: 'meu-site',
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        Readable.from(buffer).pipe(stream);
+      });
+
+    const result = await streamUpload();
+
+    // Salva URL e tipo no Supabase
+    const { data: insertedData, error } = await supabase
+      .from('midias')
+      .insert([{ url: result.secure_url, tipo }])
+      .select()
+      .single();
+
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    }
+
+    return new Response(JSON.stringify(insertedData), { status: 200 });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: 'Erro no servidor' }), { status: 500 });
+  }
 }
